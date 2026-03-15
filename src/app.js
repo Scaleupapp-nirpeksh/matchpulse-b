@@ -49,8 +49,10 @@ app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
     service: 'matchpulse-backend',
+    version: '1.0.0',
     timestamp: new Date().toISOString(),
     environment: env.NODE_ENV,
+    uptime: Math.floor(process.uptime()) + 's',
   });
 });
 
