@@ -8,6 +8,9 @@ const env = {
   NODE_ENV: process.env.NODE_ENV || 'development',
   PORT: parseInt(process.env.PORT, 10) || 5000,
   CLIENT_URL: process.env.CLIENT_URL || 'http://localhost:3000',
+  CLIENT_URLS: (process.env.CLIENT_URLS || process.env.CLIENT_URL || 'http://localhost:3000')
+    .split(',')
+    .map(u => u.trim()),
 
   // MongoDB
   MONGODB_URI: process.env.MONGODB_URI || 'mongodb://localhost:27017/matchpulse',
