@@ -194,6 +194,53 @@ class TeamController {
   }
 
   /**
+   * PUT /api/teams/:teamId/players/:playerId
+   */
+  async updatePlayer(req, res, next) {
+    try {
+      const team = await Team.findById(req.params.teamId);
+      if (!team) throw new NotFoundError('Team not found');
+
+      const playerEntry = team.players.find(
+        (p) => p.playerId.toString() === req.params.playerId
+      );
+      if (!playerEntry) throw new NotFoundError('Player not found in team');
+
+      const oldValue = { ...playerEntry.toObject() };
+      const allowedFields = ['jerseyNumber', 'position', 'role', 'isPlaying'];
+
+      for (const field of allowedFields) {
+        if (req.body[field] !== undefined) {
+          playerEntry[field] = req.body[field];
+        }
+      }
+
+      team.markModified('players');
+      await team.save();
+
+      const tournament = await Tournament.findById(team.tournamentId);
+      await createAuditEntry({
+        organizationId: tournament?.organizationId,
+        userId: req.userId,
+        userRole: req.user.role,
+        actionType: AUDIT_ACTIONS.PLAYER_UPDATE,
+        entityType: AUDIT_ENTITY_TYPES.TEAM,
+        entityId: team._id,
+        oldValue,
+        newValue: req.body,
+        req,
+      });
+
+      res.json({
+        success: true,
+        data: team,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * DELETE /api/teams/:teamId/players/:playerId
    */
   async removePlayer(req, res, next) {

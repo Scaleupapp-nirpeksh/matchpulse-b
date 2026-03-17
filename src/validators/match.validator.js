@@ -57,7 +57,7 @@ const matchLifecycleValidation = [
   param('matchId').isMongoId().withMessage('Invalid match ID'),
   body('action')
     .notEmpty().withMessage('Action is required')
-    .isIn(['start', 'pause', 'resume', 'end']).withMessage('Invalid action'),
+    .isIn(['start', 'pause', 'resume', 'end', 'cancel', 'postpone']).withMessage('Invalid action'),
   body('toss')
     .optional()
     .isObject().withMessage('Toss must be an object'),

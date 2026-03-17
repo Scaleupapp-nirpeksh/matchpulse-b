@@ -9,6 +9,7 @@ const {
   createTeamValidation,
   updateTeamValidation,
   addPlayerValidation,
+  updatePlayerValidation,
   removePlayerValidation,
 } = require('../validators/team.validator');
 
@@ -25,6 +26,7 @@ router.delete('/:teamId', authenticate, requireMinRole('tournament_admin'), team
 
 // Player management
 router.post('/:teamId/players', authenticate, requireMinRole('tournament_admin'), addPlayerValidation, validate, teamController.addPlayer);
+router.put('/:teamId/players/:playerId', authenticate, requireMinRole('tournament_admin'), updatePlayerValidation, validate, teamController.updatePlayer);
 router.delete('/:teamId/players/:playerId', authenticate, requireMinRole('tournament_admin'), removePlayerValidation, validate, teamController.removePlayer);
 
 // Bulk import

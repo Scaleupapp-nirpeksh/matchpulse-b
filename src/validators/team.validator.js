@@ -58,6 +58,23 @@ const addPlayerValidation = [
     .trim(),
 ];
 
+const updatePlayerValidation = [
+  param('teamId').isMongoId().withMessage('Invalid team ID'),
+  param('playerId').isMongoId().withMessage('Invalid player ID'),
+  body('jerseyNumber')
+    .optional()
+    .isInt({ min: 0, max: 99 }).withMessage('Jersey number must be 0-99'),
+  body('position')
+    .optional()
+    .trim(),
+  body('role')
+    .optional()
+    .trim(),
+  body('isPlaying')
+    .optional()
+    .isBoolean().withMessage('isPlaying must be a boolean'),
+];
+
 const removePlayerValidation = [
   param('teamId').isMongoId().withMessage('Invalid team ID'),
   param('playerId').isMongoId().withMessage('Invalid player ID'),
@@ -67,5 +84,6 @@ module.exports = {
   createTeamValidation,
   updateTeamValidation,
   addPlayerValidation,
+  updatePlayerValidation,
   removePlayerValidation,
 };

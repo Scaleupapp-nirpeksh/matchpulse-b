@@ -272,8 +272,8 @@ class MatchController {
 
       switch (action) {
         case 'start': {
-          if (match.status !== MATCH_STATUS.SCHEDULED) {
-            throw new BadRequestError('Match can only be started from scheduled status');
+          if (match.status !== MATCH_STATUS.SCHEDULED && match.status !== MATCH_STATUS.POSTPONED) {
+            throw new BadRequestError('Match can only be started from scheduled or postponed status');
           }
 
           // Initialize sport-specific state
@@ -440,6 +440,89 @@ class MatchController {
             entityType: AUDIT_ENTITY_TYPES.MATCH,
             entityId: match._id,
             newValue: { resultSummary: match.resultSummary },
+            req,
+          });
+          break;
+        }
+
+        case 'cancel': {
+          if (!['scheduled', 'live', 'postponed'].includes(match.status)) {
+            throw new BadRequestError('Can only cancel a scheduled, live, or postponed match');
+          }
+
+          // Stop clock if running
+          if (match.currentState?.clockRunning) {
+            match.currentState.clockRunning = false;
+            match.currentState.clockStartedAt = null;
+          }
+
+          match.status = MATCH_STATUS.CANCELLED;
+          match.completedAt = new Date();
+          match.resultSummary = {
+            resultType: 'abandoned',
+            reason: req.body.reason || 'Match cancelled',
+          };
+          match.markModified('currentState');
+          match.markModified('resultSummary');
+          await match.save();
+
+          try {
+            const io = getIO();
+            io.to(`match:${match._id}`).emit('match_lifecycle', { action: 'cancel', match });
+            io.to(`tournament:${match.tournamentId}`).emit('match_update', {
+              matchId: match._id,
+              status: 'cancelled',
+            });
+          } catch (e) {}
+
+          await createAuditEntry({
+            organizationId: tournament?.organizationId,
+            userId: req.userId,
+            userRole: req.user.role,
+            actionType: AUDIT_ACTIONS.MATCH_CANCEL,
+            entityType: AUDIT_ENTITY_TYPES.MATCH,
+            entityId: match._id,
+            newValue: { reason: req.body.reason },
+            req,
+          });
+          break;
+        }
+
+        case 'postpone': {
+          if (!['scheduled', 'live'].includes(match.status)) {
+            throw new BadRequestError('Can only postpone a scheduled or live match');
+          }
+
+          // Pause clock if running
+          if (match.currentState?.clockRunning) {
+            const elapsed = (Date.now() - new Date(match.currentState.clockStartedAt).getTime()) / 1000;
+            match.currentState.clockSeconds = Math.max(0, match.currentState.clockSeconds - elapsed);
+            match.currentState.clockRunning = false;
+            match.currentState.clockStartedAt = null;
+            match.currentState.isPaused = true;
+          }
+
+          match.status = MATCH_STATUS.POSTPONED;
+          match.markModified('currentState');
+          await match.save();
+
+          try {
+            const io = getIO();
+            io.to(`match:${match._id}`).emit('match_lifecycle', { action: 'postpone', match });
+            io.to(`tournament:${match.tournamentId}`).emit('match_update', {
+              matchId: match._id,
+              status: 'postponed',
+            });
+          } catch (e) {}
+
+          await createAuditEntry({
+            organizationId: tournament?.organizationId,
+            userId: req.userId,
+            userRole: req.user.role,
+            actionType: AUDIT_ACTIONS.MATCH_POSTPONE,
+            entityType: AUDIT_ENTITY_TYPES.MATCH,
+            entityId: match._id,
+            newValue: { reason: req.body.reason },
             req,
           });
           break;
