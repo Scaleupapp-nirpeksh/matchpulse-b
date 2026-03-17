@@ -16,6 +16,8 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             cd /home/ubuntu/matchpulse-backend
+            git checkout .
+            git clean -fd
             git pull origin main
             npm install --production
             pm2 restart matchpulse || pm2 start src/server.js --name matchpulse
