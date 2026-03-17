@@ -133,6 +133,41 @@ class EmailService {
 
     return this.sendEmail({ to, subject, html });
   }
+  /**
+   * Send password reset email
+   */
+  async sendPasswordResetEmail({ to, resetToken, fullName }) {
+    const resetUrl = `${env.CLIENT_URL}/reset-password/${resetToken}`;
+
+    const subject = 'Reset your MatchPulse password';
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: #1D9E75; padding: 20px; text-align: center;">
+          <h1 style="color: white; margin: 0;">🏆 MatchPulse</h1>
+        </div>
+        <div style="padding: 30px; background: #f9f9f9;">
+          <h2>Password Reset Request</h2>
+          <p>Hi${fullName ? ` ${fullName}` : ''},</p>
+          <p>We received a request to reset the password for your MatchPulse account. Click the button below to set a new password:</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${resetUrl}" style="background: #1D9E75; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-size: 16px;">Reset Password</a>
+          </div>
+          <p style="color: #666; font-size: 14px;">This link will expire in <strong>1 hour</strong>.</p>
+          <p style="color: #666; font-size: 14px;">If you didn't request a password reset, you can safely ignore this email. Your password will remain unchanged.</p>
+          <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;" />
+          <p style="color: #999; font-size: 12px;">If the button doesn't work, copy and paste this link into your browser:</p>
+          <p style="color: #999; font-size: 12px; word-break: break-all;">${resetUrl}</p>
+        </div>
+        <div style="padding: 15px; text-align: center; color: #999; font-size: 12px;">
+          <p>MatchPulse — Live Sports. Real Time. Your Community.</p>
+        </div>
+      </div>
+    `;
+
+    const text = `Hi${fullName ? ` ${fullName}` : ''},\n\nWe received a request to reset your MatchPulse password.\n\nVisit this link to reset your password (expires in 1 hour):\n${resetUrl}\n\nIf you didn't request this, you can safely ignore this email.\n\n— MatchPulse`;
+
+    return this.sendEmail({ to, subject, html, text });
+  }
 }
 
 module.exports = new EmailService();

@@ -110,6 +110,22 @@ class NotificationController {
   }
 
   /**
+   * GET /api/notifications/preferences
+   */
+  async getPreferences(req, res, next) {
+    try {
+      const preferences = await notificationService.getPreferences(req.userId);
+
+      res.json({
+        success: true,
+        data: preferences,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * PUT /api/notifications/preferences
    */
   async updatePreferences(req, res, next) {

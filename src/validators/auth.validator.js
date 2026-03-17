@@ -85,6 +85,22 @@ const updateProfileValidation = [
     .isArray().withMessage('Preferred sports must be an array'),
 ];
 
+const forgotPasswordValidation = [
+  body('email')
+    .trim()
+    .notEmpty().withMessage('Email is required')
+    .isEmail().withMessage('Invalid email format')
+    .normalizeEmail(),
+];
+
+const resetPasswordValidation = [
+  body('password')
+    .notEmpty().withMessage('New password is required')
+    .isLength({ min: 8 }).withMessage('Password must be at least 8 characters')
+    .matches(/[A-Z]/).withMessage('Password must contain at least one uppercase letter')
+    .matches(/[0-9]/).withMessage('Password must contain at least one number'),
+];
+
 module.exports = {
   registerEmailValidation,
   registerPhoneValidation,
@@ -94,4 +110,6 @@ module.exports = {
   refreshTokenValidation,
   changePasswordValidation,
   updateProfileValidation,
+  forgotPasswordValidation,
+  resetPasswordValidation,
 };

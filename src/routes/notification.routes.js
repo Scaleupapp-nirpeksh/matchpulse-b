@@ -12,6 +12,7 @@ router.put('/read-all', notificationController.markAllAsRead);
 router.put('/:notificationId/read', notificationController.markAsRead);
 router.post('/push-subscription', notificationController.registerPushSubscription);
 router.delete('/push-subscription/:token', notificationController.unregisterPushSubscription);
+router.get('/preferences', notificationController.getPreferences);
 router.put('/preferences', notificationController.updatePreferences);
 
 module.exports = router;

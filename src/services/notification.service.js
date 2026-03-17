@@ -239,6 +239,25 @@ class NotificationService {
   }
 
   /**
+   * Get notification preferences
+   */
+  async getPreferences(userId) {
+    const { NotFoundError } = require('../utils/errors');
+    const user = await User.findById(userId).select('notificationPreferences');
+    if (!user) {
+      throw new NotFoundError('User not found');
+    }
+    return user.notificationPreferences || {
+      push: true,
+      emailDigest: false,
+      dndStart: null,
+      dndEnd: null,
+      subscribedTournaments: [],
+      subscribedTeams: [],
+    };
+  }
+
+  /**
    * Update notification preferences
    */
   async updatePreferences(userId, preferences) {

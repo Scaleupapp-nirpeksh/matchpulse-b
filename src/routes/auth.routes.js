@@ -13,6 +13,8 @@ const {
   refreshTokenValidation,
   changePasswordValidation,
   updateProfileValidation,
+  forgotPasswordValidation,
+  resetPasswordValidation,
 } = require('../validators/auth.validator');
 
 // Public routes (with auth rate limiting)
@@ -23,6 +25,8 @@ router.post('/login/phone', authLimiter, authController.loginPhone);
 router.post('/otp/send', authLimiter, sendOtpValidation, validate, authController.sendOtp);
 router.post('/otp/verify', authLimiter, verifyOtpValidation, validate, authController.verifyOtp);
 router.post('/refresh', refreshTokenValidation, validate, authController.refreshToken);
+router.post('/forgot-password', authLimiter, forgotPasswordValidation, validate, authController.forgotPassword);
+router.post('/reset-password/:token', authLimiter, resetPasswordValidation, validate, authController.resetPassword);
 
 // Protected routes
 router.post('/logout', authenticate, authController.logout);

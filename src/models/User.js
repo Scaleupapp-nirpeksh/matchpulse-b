@@ -85,6 +85,15 @@ const userSchema = new mongoose.Schema(
         ref: 'Team',
       }],
     },
+    // Password reset fields
+    resetPasswordToken: {
+      type: String,
+      select: false,
+    },
+    resetPasswordExpiry: {
+      type: Date,
+      select: false,
+    },
     // OTP fields
     otp: {
       code: { type: String, select: false },
@@ -137,6 +146,8 @@ userSchema.methods.toPublicJSON = function () {
   delete obj.passwordHash;
   delete obj.refreshTokens;
   delete obj.otp;
+  delete obj.resetPasswordToken;
+  delete obj.resetPasswordExpiry;
   delete obj.__v;
   return obj;
 };
