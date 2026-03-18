@@ -89,6 +89,14 @@ const tournamentSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    // Public team registration settings
+    registrationSettings: {
+      isOpen: { type: Boolean, default: false },
+      requireApproval: { type: Boolean, default: true },
+      maxTeams: { type: Number, default: null },
+      deadline: { type: Date, default: null },
+      instructions: { type: String, maxlength: 500, default: '' },
+    },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',

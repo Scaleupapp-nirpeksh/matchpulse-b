@@ -85,10 +85,43 @@ const removePlayerValidation = [
   param('playerId').isMongoId().withMessage('Invalid player ID'),
 ];
 
+const publicRegistrationValidation = [
+  param('tournamentId').isMongoId().withMessage('Invalid tournament ID'),
+  body('teamName')
+    .trim()
+    .notEmpty().withMessage('Team name is required')
+    .isLength({ max: 100 }).withMessage('Team name must be under 100 characters'),
+  body('shortName')
+    .optional()
+    .trim()
+    .isLength({ max: 5 }).withMessage('Short name must be under 5 characters'),
+  body('captain.name')
+    .trim()
+    .notEmpty().withMessage('Captain name is required'),
+  body('captain.email')
+    .optional()
+    .isEmail().withMessage('Invalid email address'),
+  body('captain.phone')
+    .optional()
+    .trim(),
+  body('players')
+    .isArray({ min: 1 }).withMessage('At least one player is required'),
+  body('players.*.name')
+    .trim()
+    .notEmpty().withMessage('Player name is required'),
+  body('players.*.jerseyNumber')
+    .optional()
+    .isInt({ min: 0, max: 99 }).withMessage('Jersey number must be 0-99'),
+  body('players.*.position')
+    .optional()
+    .trim(),
+];
+
 module.exports = {
   createTeamValidation,
   updateTeamValidation,
   addPlayerValidation,
   updatePlayerValidation,
   removePlayerValidation,
+  publicRegistrationValidation,
 };

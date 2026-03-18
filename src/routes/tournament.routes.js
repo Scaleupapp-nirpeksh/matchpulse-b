@@ -11,6 +11,7 @@ const {
 
 // Public routes
 router.get('/', tournamentController.listActive);
+router.get('/:tournamentId/registration-info', tournamentController.getRegistrationInfo);
 router.get('/:tournamentId', tournamentController.getById);
 router.get('/org/:orgId', tournamentController.getByOrg);
 

@@ -95,6 +95,7 @@ class TournamentController {
         'name', 'description', 'logoUrl', 'format', 'numGroups',
         'teamsPerGroup', 'teamsAdvancing', 'seeding', 'rulesConfig',
         'startDate', 'endDate', 'venues', 'thirdPlaceMatch', 'swissRounds',
+        'registrationSettings',
       ];
 
       const updates = {};
@@ -276,6 +277,50 @@ class TournamentController {
         success: true,
         data: tournaments,
         pagination: paginationMeta(total, page, limit),
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * GET /api/tournaments/:tournamentId/registration-info (PUBLIC)
+   */
+  async getRegistrationInfo(req, res, next) {
+    try {
+      const tournament = await Tournament.findById(req.params.tournamentId)
+        .select('name sportType format status registrationSettings description logoUrl startDate')
+        .populate('organizationId', 'name logoUrl');
+
+      if (!tournament) throw new NotFoundError('Tournament not found');
+
+      const settings = tournament.registrationSettings || {};
+      const isAccepting =
+        tournament.status === 'registration' &&
+        settings.isOpen !== false &&
+        (!settings.deadline || new Date() <= new Date(settings.deadline));
+
+      res.json({
+        success: true,
+        data: {
+          tournament: {
+            _id: tournament._id,
+            name: tournament.name,
+            sportType: tournament.sportType,
+            format: tournament.format,
+            description: tournament.description,
+            logoUrl: tournament.logoUrl,
+            startDate: tournament.startDate,
+            organization: tournament.organizationId,
+          },
+          registration: {
+            isAccepting,
+            requireApproval: settings.requireApproval ?? true,
+            instructions: settings.instructions || '',
+            deadline: settings.deadline || null,
+            maxTeams: settings.maxTeams || null,
+          },
+        },
       });
     } catch (error) {
       next(error);

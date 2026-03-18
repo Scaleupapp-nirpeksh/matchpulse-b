@@ -11,9 +11,21 @@ const {
   addPlayerValidation,
   updatePlayerValidation,
   removePlayerValidation,
+  publicRegistrationValidation,
 } = require('../validators/team.validator');
 
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 2 * 1024 * 1024 } });
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const ext = '.' + file.originalname.split('.').pop().toLowerCase();
+    if (['.csv', '.xlsx', '.xls'].includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only .csv and .xlsx files are allowed'));
+    }
+  },
+});
 
 // Public routes
 router.get('/tournament/:tournamentId', teamController.getByTournament);
@@ -31,5 +43,16 @@ router.delete('/:teamId/players/:playerId', authenticate, requireMinRole('tourna
 
 // Bulk import
 router.post('/tournament/:tournamentId/bulk-import', authenticate, requireMinRole('tournament_admin'), upload.single('file'), teamController.bulkImport);
+
+// Public team registration (no auth required)
+router.post('/tournament/:tournamentId/register', publicRegistrationValidation, validate, teamController.publicRegister);
+
+// Registration management (admin)
+router.get('/tournament/:tournamentId/registrations', authenticate, requireMinRole('tournament_admin'), teamController.getRegistrations);
+router.put('/tournament/:tournamentId/registrations/:registrationId', authenticate, requireMinRole('tournament_admin'), teamController.reviewRegistration);
+
+// AI-powered import
+router.post('/tournament/:tournamentId/ai-import', authenticate, requireMinRole('tournament_admin'), upload.single('file'), teamController.aiImport);
+router.post('/tournament/:tournamentId/ai-import/confirm', authenticate, requireMinRole('tournament_admin'), teamController.confirmAiImport);
 
 module.exports = router;

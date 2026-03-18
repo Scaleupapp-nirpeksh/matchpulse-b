@@ -928,6 +928,134 @@ Write a 3-4 paragraph post-match summary covering result, key moments, standout 
 
     return stats;
   }
+
+  /**
+   * AI-powered column mapping for team/player import
+   */
+  async mapImportColumns(headers, sampleRows, sportType) {
+    const client = getAnthropicClient();
+    if (!client) {
+      return this.fallbackColumnMapping(headers, sampleRows);
+    }
+
+    try {
+      const prompt = `You are analyzing a spreadsheet for importing teams and players into a ${sportType} tournament management system.
+
+The spreadsheet has these column headers:
+${JSON.stringify(headers)}
+
+Here are the first rows of data:
+${JSON.stringify(sampleRows.slice(0, 5), null, 2)}
+
+Map each column to one of these target fields:
+- "team" — Team name (REQUIRED)
+- "player" — Player name (REQUIRED)
+- "jerseyNumber" — Jersey/shirt number
+- "position" — Playing position
+- "role" — Player role (captain, vice-captain, etc.)
+- "shortName" — Team short name / abbreviation
+- "ignore" — Column should be ignored
+
+Return a JSON object with:
+1. "columnMapping": object mapping each original header to a target field name
+2. "teams": array of team objects, each with:
+   - "name": team name
+   - "shortName": derived short name (3 chars uppercase) if not in data
+   - "players": array of { "name", "jerseyNumber", "position", "role" }
+3. "confidence": number 0-1 indicating mapping confidence
+4. "warnings": array of any issues found
+
+Return ONLY valid JSON, no markdown or code blocks.`;
+
+      const response = await client.messages.create({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 4000,
+        messages: [{ role: 'user', content: prompt }],
+        system: 'You are a data mapping assistant for MatchPulse sports tournament platform. Analyze spreadsheet data and map columns to the expected schema. Be precise and handle edge cases. Always return valid JSON only, no markdown wrapping.',
+      });
+
+      const text = response.content[0]?.text?.trim();
+      if (!text) return this.fallbackColumnMapping(headers, sampleRows);
+
+      // Strip markdown code blocks if present
+      const cleaned = text.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
+
+      try {
+        return JSON.parse(cleaned);
+      } catch {
+        return this.fallbackColumnMapping(headers, sampleRows);
+      }
+    } catch (error) {
+      console.error('AI column mapping error:', error.message);
+      return this.fallbackColumnMapping(headers, sampleRows);
+    }
+  }
+
+  /**
+   * Fallback: heuristic-based column mapping
+   */
+  fallbackColumnMapping(headers, sampleRows) {
+    const mapping = {};
+    const lowerHeaders = headers.map((h) => h.toLowerCase().trim());
+
+    for (let i = 0; i < headers.length; i++) {
+      const h = lowerHeaders[i];
+      if (['team', 'team_name', 'teamname', 'team name'].includes(h)) {
+        mapping[headers[i]] = 'team';
+      } else if (['player', 'player_name', 'playername', 'player name', 'name', 'full name', 'fullname'].includes(h)) {
+        mapping[headers[i]] = 'player';
+      } else if (['jersey', 'jerseynumber', 'jersey_number', 'jersey number', 'number', '#', 'no', 'shirt'].includes(h)) {
+        mapping[headers[i]] = 'jerseyNumber';
+      } else if (['position', 'pos', 'playing_position', 'playing position'].includes(h)) {
+        mapping[headers[i]] = 'position';
+      } else if (['role', 'player_role', 'player role', 'captain'].includes(h)) {
+        mapping[headers[i]] = 'role';
+      } else if (['shortname', 'short_name', 'short name', 'abbr', 'abbreviation'].includes(h)) {
+        mapping[headers[i]] = 'shortName';
+      } else {
+        mapping[headers[i]] = 'ignore';
+      }
+    }
+
+    const teamMap = {};
+    const teamCol = Object.keys(mapping).find((k) => mapping[k] === 'team');
+    const playerCol = Object.keys(mapping).find((k) => mapping[k] === 'player');
+
+    for (const row of sampleRows) {
+      const teamName = teamCol ? row[teamCol] : null;
+      if (!teamName) continue;
+
+      if (!teamMap[teamName]) {
+        const snCol = Object.keys(mapping).find((k) => mapping[k] === 'shortName');
+        teamMap[teamName] = {
+          name: teamName,
+          shortName: (snCol && row[snCol]) || teamName.substring(0, 3).toUpperCase(),
+          players: [],
+        };
+      }
+
+      const playerName = playerCol ? row[playerCol] : null;
+      if (playerName) {
+        const jerseyCol = Object.keys(mapping).find((k) => mapping[k] === 'jerseyNumber');
+        const posCol = Object.keys(mapping).find((k) => mapping[k] === 'position');
+        const roleCol = Object.keys(mapping).find((k) => mapping[k] === 'role');
+
+        teamMap[teamName].players.push({
+          name: playerName,
+          jerseyNumber: jerseyCol ? parseInt(row[jerseyCol]) || null : null,
+          position: posCol ? row[posCol] || null : null,
+          role: roleCol ? row[roleCol] || null : null,
+        });
+      }
+    }
+
+    return {
+      columnMapping: mapping,
+      teams: Object.values(teamMap),
+      confidence: 0.6,
+      warnings: teamCol && playerCol ? [] : ['Could not identify team or player columns. Please check column names.'],
+    };
+  }
 }
 
 module.exports = new AIService();
