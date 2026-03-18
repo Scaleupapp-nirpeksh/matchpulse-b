@@ -161,14 +161,22 @@ class OrganizationController {
       await org.save();
 
       // Send invite email if email provided
+      let emailSent = false;
+      let emailError = null;
       if (email) {
-        await emailService.sendInviteEmail({
-          to: email,
-          orgName: org.name,
-          inviteCode: code,
-          role,
-          inviterName: req.user.fullName,
-        }).catch((err) => console.error('Invite email failed:', err.message));
+        try {
+          await emailService.sendInviteEmail({
+            to: email,
+            orgName: org.name,
+            inviteCode: code,
+            role,
+            inviterName: req.user.fullName,
+          });
+          emailSent = true;
+        } catch (err) {
+          emailError = err.message;
+          console.error('Invite email failed:', err.message);
+        }
       }
 
       await createAuditEntry({
@@ -182,13 +190,17 @@ class OrganizationController {
         req,
       });
 
+      const inviteUrl = `${require('../config/env').CLIENT_URL}/invite/${code}`;
+
       res.status(201).json({
         success: true,
         data: {
           inviteCode: code,
           role,
           expiresAt,
-          inviteUrl: `${require('../config/env').CLIENT_URL}/invite/${code}`,
+          inviteUrl,
+          emailSent,
+          emailError: emailError || undefined,
         },
       });
     } catch (error) {
