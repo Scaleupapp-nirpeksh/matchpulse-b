@@ -10,7 +10,7 @@ class AuthService {
   /**
    * Register with email and password
    */
-  async registerWithEmail({ fullName, email, password, organizationId = null, role = 'player' }) {
+  async registerWithEmail({ fullName, email, password, phone = null, organizationId = null, role = 'player' }) {
     // Check if email already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -21,6 +21,7 @@ class AuthService {
       fullName,
       email,
       passwordHash: password, // Pre-save hook will hash it
+      phone: phone || undefined,
       organizationId,
       role,
     });
@@ -41,18 +42,30 @@ class AuthService {
    */
   async registerWithPhone({ fullName, phone, organizationId = null, role = 'player' }) {
     const existingUser = await User.findOne({ phone });
-    if (existingUser) {
-      throw new ConflictError('Phone number already registered');
+
+    // If user already exists and is active, they should login not register
+    if (existingUser && existingUser.isActive && existingUser.fullName !== 'Pending Registration') {
+      throw new ConflictError('Phone number already registered. Please login instead.');
     }
 
-    const user = new User({
-      fullName,
-      phone,
-      organizationId,
-      role,
-    });
-
-    await user.save();
+    let user;
+    if (existingUser) {
+      // Update the pending/temp user record created during OTP flow
+      existingUser.fullName = fullName;
+      existingUser.isActive = true;
+      existingUser.organizationId = organizationId;
+      existingUser.role = role;
+      await existingUser.save();
+      user = existingUser;
+    } else {
+      user = new User({
+        fullName,
+        phone,
+        organizationId,
+        role,
+      });
+      await user.save();
+    }
 
     const tokens = this.generateTokens(user);
     await this.saveRefreshToken(user._id, tokens.refreshToken);
@@ -98,13 +111,14 @@ class AuthService {
    * Login with phone (after OTP verification)
    */
   async loginWithPhone({ phone }) {
-    const user = await User.findOne({ phone });
+    const user = await User.findOne({ phone, isActive: true });
     if (!user) {
+      // Check if there's a pending registration user
+      const pendingUser = await User.findOne({ phone, isActive: false });
+      if (pendingUser) {
+        throw new NotFoundError('Registration not completed. Please register first.');
+      }
       throw new NotFoundError('Phone number not registered');
-    }
-
-    if (!user.isActive) {
-      throw new UnauthorizedError('Account is deactivated');
     }
 
     user.lastLoginAt = new Date();

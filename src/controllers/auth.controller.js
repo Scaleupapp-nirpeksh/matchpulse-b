@@ -9,12 +9,13 @@ class AuthController {
    */
   async registerEmail(req, res, next) {
     try {
-      const { fullName, email, password, organizationId } = req.body;
+      const { fullName, email, password, phone, organizationId } = req.body;
 
       const result = await authService.registerWithEmail({
         fullName,
         email,
         password,
+        phone,
         organizationId,
       });
 

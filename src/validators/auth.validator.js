@@ -9,12 +9,16 @@ const registerEmailValidation = [
     .trim()
     .notEmpty().withMessage('Email is required')
     .isEmail().withMessage('Invalid email format')
-    .normalizeEmail(),
+    .normalizeEmail({ gmail_remove_dots: false }),
   body('password')
     .notEmpty().withMessage('Password is required')
     .isLength({ min: 8 }).withMessage('Password must be at least 8 characters')
     .matches(/[A-Z]/).withMessage('Password must contain at least one uppercase letter')
     .matches(/[0-9]/).withMessage('Password must contain at least one number'),
+  body('phone')
+    .optional()
+    .trim()
+    .matches(/^\+[1-9]\d{6,14}$/).withMessage('Invalid phone number format (include country code, e.g., +91XXXXXXXXXX)'),
 ];
 
 const registerPhoneValidation = [
@@ -33,7 +37,7 @@ const loginEmailValidation = [
     .trim()
     .notEmpty().withMessage('Email is required')
     .isEmail().withMessage('Invalid email format')
-    .normalizeEmail(),
+    .normalizeEmail({ gmail_remove_dots: false }),
   body('password')
     .notEmpty().withMessage('Password is required'),
 ];
@@ -90,7 +94,7 @@ const forgotPasswordValidation = [
     .trim()
     .notEmpty().withMessage('Email is required')
     .isEmail().withMessage('Invalid email format')
-    .normalizeEmail(),
+    .normalizeEmail({ gmail_remove_dots: false }),
 ];
 
 const resetPasswordValidation = [
