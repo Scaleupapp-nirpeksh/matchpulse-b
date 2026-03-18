@@ -44,9 +44,14 @@ const updateTeamValidation = [
 
 const addPlayerValidation = [
   param('teamId').isMongoId().withMessage('Invalid team ID'),
+  // Either playerId (existing user) or name (auto-create player) must be provided
   body('playerId')
-    .notEmpty().withMessage('Player ID is required')
+    .optional()
     .isMongoId().withMessage('Invalid player ID'),
+  body('name')
+    .optional()
+    .trim()
+    .isLength({ min: 1, max: 100 }).withMessage('Player name must be 1-100 characters'),
   body('jerseyNumber')
     .optional()
     .isInt({ min: 0, max: 99 }).withMessage('Jersey number must be 0-99'),

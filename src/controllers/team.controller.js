@@ -148,17 +148,36 @@ class TeamController {
    */
   async addPlayer(req, res, next) {
     try {
-      const { playerId, jerseyNumber, position, role } = req.body;
+      let { playerId, name, jerseyNumber, position, role } = req.body;
       const team = await Team.findById(req.params.teamId);
       if (!team) throw new NotFoundError('Team not found');
 
-      // Check player exists
-      const player = await User.findById(playerId);
-      if (!player) throw new NotFoundError('Player not found');
+      // Either playerId or name must be provided
+      if (!playerId && !name) {
+        throw new BadRequestError('Either playerId or player name is required');
+      }
+
+      let player;
+      if (playerId) {
+        // Existing user by ID
+        player = await User.findById(playerId);
+        if (!player) throw new NotFoundError('Player not found');
+      } else {
+        // Auto-create a player user record by name
+        const tournament = await Tournament.findById(team.tournamentId);
+        player = new User({
+          fullName: name,
+          role: 'player',
+          organizationId: tournament?.organizationId || null,
+          isActive: true,
+        });
+        await player.save();
+        playerId = player._id;
+      }
 
       // Check if player already in team
       const existing = team.players.find(
-        (p) => p.playerId.toString() === playerId
+        (p) => p.playerId.toString() === playerId.toString()
       );
       if (existing) throw new ConflictError('Player already in this team');
 
@@ -180,7 +199,7 @@ class TeamController {
         actionType: AUDIT_ACTIONS.PLAYER_ADD,
         entityType: AUDIT_ENTITY_TYPES.TEAM,
         entityId: team._id,
-        newValue: { playerId, jerseyNumber, teamName: team.name },
+        newValue: { playerId, name: player.fullName, jerseyNumber, teamName: team.name },
         req,
       });
 
